@@ -1,7 +1,5 @@
 # nonebot-plugin-alchelper
-适用于 [Nonebot2](https://github.com/nonebot/nonebot2) 的聊天记录插件。
-
-将聊天消息存至数据库中，方便其他插件使用。
+基于 [nonebot-plugin-alconna](https://github.com/nonebot/plugin-alconna), 适用于 [Nonebot2](https://github.com/nonebot/nonebot2) 的命令帮助插件。
 
 ## 安装
 
