@@ -13,17 +13,19 @@ from arclet.alconna.config import lang
 from typing import Literal
 from nonebot import get_driver, require
 from nonebot.plugin import PluginMetadata
+from collections import deque
 
 require("nonebot_plugin_alconna")
 
 from nonebot_plugin_alconna import on_alconna
+from nonebot_plugin_alconna.extension import ExtensionExecutor
 
 from .config import Config
 
 driver = get_driver()
 global_config = driver.config
 config = Config.parse_obj(global_config)
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __plugin_meta__ = PluginMetadata(
     name="Alconna 帮助工具",
     description="基于 nonebot-plugin-alconna，给出所有命令帮助以及统计",
@@ -70,6 +72,16 @@ with namespace("alchelper") as ns:
     )
     _statis.shortcut("消息统计", {"args": ["show"], "prefix": True})
     _statis.shortcut("命令统计", {"args": ["most"], "prefix": True})
+
+record = deque(maxlen=256)
+default_ext = ExtensionExecutor.globals[0]
+async def patch_parse_wrapper(bot, state, event, res: Arparma):
+    if res.source != _statis.path:
+        record.append((res.source, res.origin))
+
+default_ext.parse_wrapper = patch_parse_wrapper
+default_ext._overrides["parse_wrapper"] = True
+
 
 help_cmd = on_alconna(_help, auto_send_output=True)
 statis_cmd = on_alconna(_statis, auto_send_output=True)
@@ -130,14 +142,14 @@ async def help_cmd_handle(arp: Arparma):
 
 @statis_cmd.assign("type", "show")
 async def statis_cmd_show(arp: Arparma):
+    if not record:
+        return await statis_cmd.finish("暂无命令记录")
     return await statis_cmd.finish(
-        "最近的命令记录为：" +
-        "\n".join(
+        "最近的命令记录为：\n"
+        + "\n".join(
             [
-                f"[{k}]: {v.origin}"
-                for k, v in enumerate(
-                    command_manager.records.values()[: arp.query[int]("count")]
-                )
+                f"[{i}]: {record[i][1]}"
+                for i in range(min(arp.query[int]("count"), len(record)))
             ]
         )
     )
@@ -145,12 +157,15 @@ async def statis_cmd_show(arp: Arparma):
 
 @statis_cmd.assign("type", "most")
 async def statis_cmd_most(arp: Arparma):
+    if not record:
+        return await statis_cmd.finish("暂无命令记录")
+    length = len(record)
     table = {}
-    length = len(command_manager.records.keys())
-    for i, r in enumerate(command_manager.records.values()):
-        if r.source not in table:
-            table[r.source] = 0
-        table[r.source] += (length - i) / length
+    for i, r in enumerate(record):
+        source = r[0]
+        if source not in table:
+            table[source] = 0
+        table[source] += i / length
     sort = sorted(table.items(), key=lambda x: x[1], reverse=True)
     sort = sort[:arp.query[int]("count")]
     return await statis_cmd.finish(
@@ -161,12 +176,15 @@ async def statis_cmd_most(arp: Arparma):
 
 @statis_cmd.assign("type", "least")
 async def statis_cmd_least(arp: Arparma):
+    if not record:
+        return await statis_cmd.finish("暂无命令记录")
+    length = len(record)
     table = {}
-    length = len(command_manager.records.keys())
-    for i in command_manager.records.values():
-        if i.source not in table:
-            table[i.source] = 0
-        table[i.source] += (length - i) / length
+    for i, r in enumerate(record):
+        source = r[0]
+        if r[source] not in table:
+            table[source] = 0
+        table[source] += i / length
     sort = sorted(table.items(), key=lambda x: x[1], reverse=False)
     sort = sort[:arp.query[int]("count")]
     return await statis_cmd.finish(
