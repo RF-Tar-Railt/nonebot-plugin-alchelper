@@ -18,7 +18,7 @@ from collections import deque
 require("nonebot_plugin_alconna")
 
 from nonebot_plugin_alconna import on_alconna
-from nonebot_plugin_alconna.extension import ExtensionExecutor
+from nonebot_plugin_alconna.extension import Extension, add_global_extension
 
 from .config import Config
 
@@ -58,9 +58,9 @@ with namespace("alchelper") as ns:
             example=f"${config.alchelper_help} 1",
         ),
     )
-    _help.shortcut("帮助", {"prefix": True})
-    _help.shortcut("所有帮助", {"args": ["--hide"], "prefix": True})
-    _help.shortcut("第(\d+)页帮助", {"args": ["{0}"], "prefix": True})
+    _help.shortcut("帮助", {"prefix": True, "fuzzy": False})
+    _help.shortcut("所有帮助", {"args": ["--hide"], "prefix": True, "fuzzy": False})
+    _help.shortcut("第(\d+)页帮助", {"args": ["{0}"], "prefix": True, "fuzzy": False})
     _statis = Alconna(
         config.alchelper_statis,
         Arg("type", Literal["show", "most", "least"], "most"),
@@ -74,14 +74,21 @@ with namespace("alchelper") as ns:
     _statis.shortcut("命令统计", {"args": ["most"], "prefix": True})
 
 record = deque(maxlen=256)
-default_ext = ExtensionExecutor.globals[0]
-async def patch_parse_wrapper(bot, state, event, res: Arparma):
-    if res.source != _statis.path:
-        record.append((res.source, res.origin))
 
-default_ext.parse_wrapper = patch_parse_wrapper
-default_ext._overrides["parse_wrapper"] = True
+class HelperExtension(Extension):
+    @property
+    def priority(self) -> int:
+        return 16
 
+    @property
+    def id(self) -> str:
+        return "nonebot_plugin_alchelper:HelperExtension"
+
+    async def parse_wrapper(self, bot, state, event, res: Arparma) -> None:
+        if res.source != _statis.path:
+            record.append((res.source, res.origin))
+
+add_global_extension(HelperExtension())
 
 help_cmd = on_alconna(_help, auto_send_output=True)
 statis_cmd = on_alconna(_statis, auto_send_output=True)
@@ -99,7 +106,7 @@ async def help_cmd_handle(arp: Arparma):
     if config.alchelper_help_max < 1:
         command_string = (
             "\n".join(
-                f" {str(index).rjust(len(str(len(cmds))), '0')} {slot.name} : {slot.meta.description}"
+                f" {str(index).rjust(len(str(len(cmds))), '0')} {slot.formatter.header()} : {slot.meta.description}"
                 for index, slot in enumerate(cmds)
             )
             if config.alchelper_help_index
