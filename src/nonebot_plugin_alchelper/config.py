@@ -1,7 +1,7 @@
-from pydantic import Extra, BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import Optional, Set
 
-class Config(BaseModel, extra=Extra.ignore):
+class Config(BaseModel):
     """Plugin Config Here"""
     alchelper_command_start: Optional[Set[str]] = None
     """插件使用的命令前缀，如果不填则使用全局命令前缀 (COMMAND_START)"""

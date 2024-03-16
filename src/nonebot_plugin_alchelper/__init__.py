@@ -25,7 +25,7 @@ from .config import Config
 driver = get_driver()
 global_config = driver.config
 _config = get_plugin_config(Config)
-__version__ = "0.2.0"
+__version__ = "0.4.0"
 __plugin_meta__ = PluginMetadata(
     name="Alconna 帮助工具",
     description="基于 nonebot-plugin-alconna，给出所有命令帮助以及统计",
