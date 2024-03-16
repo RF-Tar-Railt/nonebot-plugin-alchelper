@@ -11,7 +11,7 @@ from arclet.alconna import (
 )
 from arclet.alconna.config import lang
 from typing import Literal
-from nonebot import get_driver, require
+from nonebot import get_driver, require, get_plugin_config
 from nonebot.plugin import PluginMetadata
 from collections import deque
 
@@ -24,7 +24,7 @@ from .config import Config
 
 driver = get_driver()
 global_config = driver.config
-config = Config.parse_obj(global_config)
+_config = get_plugin_config(Config)
 __version__ = "0.2.0"
 __plugin_meta__ = PluginMetadata(
     name="Alconna 帮助工具",
@@ -46,28 +46,28 @@ __plugin_meta__ = PluginMetadata(
 )
 
 with namespace("alchelper") as ns:
-    ns.prefixes = list(config.alchelper_command_start or global_config.command_start)
+    ns.prefixes = list(_config.alchelper_command_start or global_config.command_start)
 
     _help = Alconna(
-        config.alchelper_help,
+        _config.alchelper_help,
         Args["page", int, 0],
         Option("--hide", help_text="是否列出隐藏命令", action=store_true, default=False),
         meta=CommandMeta(
             description="显示所有命令帮助",
             usage="可以使用 --hide 参数来显示隐藏命令",
-            example=f"${config.alchelper_help} 1",
+            example=f"${_config.alchelper_help} 1",
         ),
     )
     _help.shortcut("帮助", {"prefix": True, "fuzzy": False})
     _help.shortcut("所有帮助", {"args": ["--hide"], "prefix": True, "fuzzy": False})
-    _help.shortcut("第(\d+)页帮助", {"args": ["{0}"], "prefix": True, "fuzzy": False})
+    _help.shortcut(r"第(\d+)页帮助", {"args": ["{0}"], "prefix": True, "fuzzy": False})
     _statis = Alconna(
-        config.alchelper_statis,
+        _config.alchelper_statis,
         Arg("type", Literal["show", "most", "least"], "most"),
-        Arg("count", int, config.alchelper_statis_msgcount_default),
+        Arg("count", int, _config.alchelper_statis_msgcount_default),
         meta=CommandMeta(
             description="命令统计",
-            example=f"${config.alchelper_statis} msg",
+            example=f"${_config.alchelper_statis} msg",
         ),
     )
     _statis.shortcut("消息统计", {"args": ["show"], "prefix": True})
@@ -103,40 +103,40 @@ async def help_cmd_handle(arp: Arparma):
         if not i.meta.hide or arp.query[bool]("hide.value")
     ]
     header = lang.require("manager", "help_header")
-    if config.alchelper_help_max < 1:
+    if _config.alchelper_help_max < 1:
         command_string = (
             "\n".join(
-                f" {str(index).rjust(len(str(len(cmds))), '0')} {slot.formatter.header()} : {slot.meta.description}"
+                f" {str(index).rjust(len(str(len(cmds))), '0')} {slot.header_display} : {slot.meta.description}"
                 for index, slot in enumerate(cmds)
             )
-            if config.alchelper_help_index
+            if _config.alchelper_help_index
             else "\n".join(f" - {cmd.name} : {cmd.meta.description}" for cmd in cmds)
         )
     else:
-        page = arp.query[int]("page")
-        max_page = len(cmds) // config.alchelper_help_max + 1
+        page = arp.query[int]("page", 0)
+        max_page = len(cmds) // _config.alchelper_help_max + 1
         if page < 1 or page > max_page:
             page = 1
         header += "\t" + pages.format(current=page, total=max_page)
         command_string = (
             "\n".join(
-                f" {str(index).rjust(len(str(page * config.alchelper_help_max)), '0')} {cmd.name} : {cmd.meta.description}"
+                f" {str(index).rjust(len(str(page * _config.alchelper_help_max)), '0')} {cmd.name} : {cmd.meta.description}"
                 for index, cmd in enumerate(
                     cmds[
                         (page - 1)
-                        * config.alchelper_help_max : page
-                        * config.alchelper_help_max
+                        * _config.alchelper_help_max : page
+                        * _config.alchelper_help_max
                     ],
-                    start=(page - 1) * config.alchelper_help_max,
+                    start=(page - 1) * _config.alchelper_help_max,
                 )
             )
-            if config.alchelper_help_index
+            if _config.alchelper_help_index
             else "\n".join(
                 f" - {cmd.name} : {cmd.meta.description}"
                 for cmd in cmds[
                     (page - 1)
-                    * config.alchelper_help_max : page
-                    * config.alchelper_help_max
+                    * _config.alchelper_help_max : page
+                    * _config.alchelper_help_max
                 ]
             )
         )
@@ -156,7 +156,7 @@ async def statis_cmd_show(arp: Arparma):
         + "\n".join(
             [
                 f"[{i}]: {record[i][1]}"
-                for i in range(min(arp.query[int]("count"), len(record)))
+                for i in range(min(arp.query[int]("count", _config.alchelper_statis_msgcount_default), len(record)))
             ]
         )
     )
