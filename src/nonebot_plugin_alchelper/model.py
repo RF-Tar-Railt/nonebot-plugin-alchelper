@@ -8,6 +8,7 @@ class Record(Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     source: Mapped[str]
     origin: Mapped[str]
+    sender: Mapped[str]
     time: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
     __tablename__  = "alchelper_record"

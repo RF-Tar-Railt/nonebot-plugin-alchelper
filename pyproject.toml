@@ -14,6 +14,17 @@ requires-python = ">=3.8"
 readme = "README.md"
 license = {text = "MIT"}
 
+[project.optional-dependencies]
+default = ["sqlalchemy[aiosqlite]"]
+mysql = ["sqlalchemy[aiomysql]"]
+asyncmy = ["sqlalchemy[asyncmy]"]
+aiomysql = ["sqlalchemy[aiomysql]"]
+postgresql = ["sqlalchemy[postgresql_psycopgbinary]"]
+psycopg = ["sqlalchemy[postgresql_psycopgbinary]"]
+asyncpg = ["sqlalchemy[postgresql_asyncpg]"]
+sqlite = ["sqlalchemy[aiosqlite]"]
+aiosqlite = ["sqlalchemy[aiosqlite]"]
+
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
@@ -21,3 +32,10 @@ build-backend = "pdm.backend"
 [tool.pdm]
 [tool.pdm.build]
 includes = ["src"]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "aiosqlite>=0.20.0",
+    "nonebot-adapter-onebot>=2.4.2",
+    "nonebot2[fastapi,httpx,websockets]>=2.2.1",
+]
