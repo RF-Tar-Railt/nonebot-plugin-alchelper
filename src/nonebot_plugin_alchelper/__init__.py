@@ -12,7 +12,7 @@ from arclet.alconna import (
 from arclet.alconna.config import lang
 from typing import Literal, Union
 from nonebot import get_driver, require, get_plugin_config
-from nonebot.plugin import PluginMetadata
+from nonebot.plugin import PluginMetadata, inherit_supported_adapters
 
 require("nonebot_plugin_orm")
 require("nonebot_plugin_alconna")
@@ -22,6 +22,7 @@ from nonebot_plugin_alconna.extension import Extension, add_global_extension
 from nonebot_plugin_orm import get_session
 from sqlalchemy import select, func
 
+from . import migrations
 from .config import Config
 from .model import Record
 
@@ -41,10 +42,12 @@ __plugin_meta__ = PluginMetadata(
     homepage="https://github.com/RF-Tar-Railt/nonebot-plugin-alchelper",
     type="application",
     config=Config,
+    supported_adapters=inherit_supported_adapters("nonebot_plugin_alconna"),
     extra={
         "author": "RF-Tar-Railt",
         "priority": 3,
         "version": __version__,
+        "orm_version_location": migrations
     },
 )
 

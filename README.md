@@ -15,6 +15,18 @@ nb plugin install nonebot-plugin-alchelper
 pip install nonebot-plugin-alchelper
 ```
 
+## 注意事项
+
+本插件使用了 `nonebot-plugin-orm`, 这需要你自行配置数据库相关配置
+
+例如，在使用 `sqlite` 作为数据库驱动的情况下，你需要
+
+1. 运行 `pip install nonebot-plugin-alchelper[aiosqlite]`
+2. 在.env配置文件中设置 `SQLALCHEMY_DATABASE_URL=sqlite+aiosqlite:///path-to-your-database`
+3. 通过 `nb-cli` 运行 `nb orm upgrade`，然后通过 `nb orm check` 检查是否存在问题
+
+更多内容参阅 [`orm文档`](https://deploy-preview-2545--nonebot2.netlify.app/docs/next/best-practice/db/).
+
 ## 配置项
 
 > 以下配置项可在 `.env.*` 文件中设置，具体参考 [NoneBot 配置方式](https://nonebot.dev/docs/appendices/config)
@@ -55,3 +67,4 @@ pip install nonebot-plugin-alchelper
 > /statis [count = 10] 
 > /第3页帮助
 > /命令统计
+> /用户统计 @xxx
