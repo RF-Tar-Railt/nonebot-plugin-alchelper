@@ -15,12 +15,16 @@ from nonebot import get_driver, require, get_plugin_config
 from nonebot.plugin import PluginMetadata
 from collections import deque
 
+require("nonebot_plugin_orm")
 require("nonebot_plugin_alconna")
 
 from nonebot_plugin_alconna import on_alconna
 from nonebot_plugin_alconna.extension import Extension, add_global_extension
+from nonebot_plugin_orm import get_session
+from sqlalchemy import select, func
 
 from .config import Config
+from .model import Record
 
 driver = get_driver()
 global_config = driver.config
@@ -73,7 +77,7 @@ with namespace("alchelper") as ns:
     _statis.shortcut("消息统计", {"args": ["show"], "prefix": True})
     _statis.shortcut("命令统计", {"args": ["most"], "prefix": True})
 
-record = deque(maxlen=256)
+#record = deque(maxlen=256)
 
 class HelperExtension(Extension):
     @property
@@ -86,7 +90,9 @@ class HelperExtension(Extension):
 
     async def parse_wrapper(self, bot, state, event, res: Arparma) -> None:
         if res.source != _statis.path:
-            record.append((res.source, res.origin))
+            async with get_session() as session:
+                session.add(Record(source=res.source, origin=res.origin))
+                await session.commit()
 
 add_global_extension(HelperExtension())
 
@@ -149,14 +155,18 @@ async def help_cmd_handle(arp: Arparma):
 
 @statis_cmd.assign("type", "show")
 async def statis_cmd_show(arp: Arparma):
-    if not record:
+    async with get_session() as session:
+        records = (await session.scalars(
+            select(Record).order_by(Record.time.desc())
+        )).fetchall()
+    if not records:
         return await statis_cmd.finish("暂无命令记录")
     return await statis_cmd.finish(
         "最近的命令记录为：\n"
         + "\n".join(
             [
-                f"[{i}]: {record[i][1]}"
-                for i in range(min(arp.query[int]("count", _config.alchelper_statis_msgcount_default), len(record)))
+                f"[{i}]: {records[i].origin}"
+                for i in range(min(arp.query[int]("count", _config.alchelper_statis_msgcount_default), len(records)))
             ]
         )
     )
@@ -164,37 +174,28 @@ async def statis_cmd_show(arp: Arparma):
 
 @statis_cmd.assign("type", "most")
 async def statis_cmd_most(arp: Arparma):
-    if not record:
+    async with get_session() as session:
+        stmt = select(Record.source, func.count(Record.source).label("count")).group_by(Record.source).order_by(func.count(Record.source).desc())
+        records = await session.execute(stmt)
+    records = records.scalars().fetchall()
+    if not records:
         return await statis_cmd.finish("暂无命令记录")
-    length = len(record)
-    table = {}
-    for i, r in enumerate(record):
-        source = r[0]
-        if source not in table:
-            table[source] = 0
-        table[source] += i / length
-    sort = sorted(table.items(), key=lambda x: x[1], reverse=True)
-    sort = sort[:arp.query[int]("count")]
     return await statis_cmd.finish(
         "以下按照命令使用频率排序\n"
-        + "\n".join(f"[{k}] {v[0]}" for k, v in enumerate(sort))
+        + "\n".join(f"[{k}] {v[0]}" for k, v in enumerate(records[:arp.query[int]("count")]))
     )
+    
 
 
 @statis_cmd.assign("type", "least")
 async def statis_cmd_least(arp: Arparma):
-    if not record:
+    async with get_session() as session:
+        stmt = select(Record.source, func.count(Record.source).label("count")).group_by(Record.source).order_by(func.count(Record.source).asc())
+        records = await session.execute(stmt)
+    records = records.scalars().fetchall()
+    if not records:
         return await statis_cmd.finish("暂无命令记录")
-    length = len(record)
-    table = {}
-    for i, r in enumerate(record):
-        source = r[0]
-        if r[source] not in table:
-            table[source] = 0
-        table[source] += i / length
-    sort = sorted(table.items(), key=lambda x: x[1], reverse=False)
-    sort = sort[:arp.query[int]("count")]
     return await statis_cmd.finish(
         "以下按照命令使用频率排序\n"
-        + "\n".join(f"[{k}] {v[0]}" for k, v in enumerate(sort))
+        + "\n".join(f"[{k}] {v[0]}" for k, v in enumerate(records[:arp.query[int]("count")]))
     )
