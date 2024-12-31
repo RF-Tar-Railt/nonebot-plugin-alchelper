@@ -1,16 +1,16 @@
 [project]
 name = "nonebot-plugin-alchelper"
-version = "0.5.0"
+version = "0.6.0"
 description = "以nonebot-plugin-alconna为基础提供系列帮助功能的插件"
 authors = [
     {name = "RF-Tar-Railt",email = "rf_tar_railt@qq.com"},
 ]
 dependencies = [
-    "nonebot2>=2.2.0",
-    "nonebot-plugin-alconna>=0.28.0",
-    "nonebot-plugin-orm>=0.7.1",
+    "nonebot2>=2.4.0",
+    "nonebot-plugin-alconna>=0.54.1",
+    "nonebot-plugin-orm>=0.7.6",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 readme = "README.md"
 license = {text = "MIT"}
 
@@ -36,6 +36,13 @@ includes = ["src"]
 [tool.pdm.dev-dependencies]
 dev = [
     "aiosqlite>=0.20.0",
-    "nonebot-adapter-onebot>=2.4.2",
-    "nonebot2[fastapi,httpx,websockets]>=2.2.1",
+    "nonebot-adapter-onebot>=2.4.6",
+    "nonebot2[fastapi,httpx,websockets]>=2.4.0",
 ]
+
+[tool.nonebot]
+adapters = [
+    { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" }
+]
+plugins = ["nonebot_plugin_alchelper"]
+builtin_plugins = []
